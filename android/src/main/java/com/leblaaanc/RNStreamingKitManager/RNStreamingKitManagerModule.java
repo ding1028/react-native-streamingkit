@@ -345,8 +345,6 @@ MediaPlayer.OnErrorListener, MediaPlayer.OnBufferingUpdateListener {
   }
 
   private void sendEvent(@Nullable WritableMap params) {
-    if(params.hasKey("playerState"))
-    Log.d(NAME, String.format("==== Emit ==== %s, %s", params.getString("playerState"), params.getString("type")));
     _reactContext
       .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
       .emit("StreamingKitEvent", params);
