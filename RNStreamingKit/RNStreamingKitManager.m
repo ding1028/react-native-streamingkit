@@ -22,10 +22,12 @@
 {
     self = [super init];
     if (self) {
-        self.audioPlayer = [[STKAudioPlayer alloc] initWithOptions:(STKAudioPlayerOptions){}];
-        [self.audioPlayer setDelegate:self];
-        [self setSharedAudioSessionCategory];
-        [self registerAudioInterruptionNotifications];
+	  NSError * categoryError;
+      [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryAmbient error:&categoryError];
+      [[AVAudioSession sharedInstance] setActive:YES error:&categoryError];
+      self.audioPlayer = [[STKAudioPlayer alloc] initWithOptions:(STKAudioPlayerOptions){}];
+      [self.audioPlayer setDelegate:self];
+      [self registerAudioInterruptionNotifications];
     }
     
     return self;
@@ -59,8 +61,16 @@ RCT_EXPORT_METHOD(play:(NSString *)url)
     if (!self.audioPlayer) {
         return;
     }
+    NSError *categoryError = nil;
     
-    [self.audioPlayer play:url];
+    [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryPlayback error:&categoryError];
+    [[AVAudioSession sharedInstance] setActive:YES error:&categoryError];
+    
+    if (!categoryError) {
+        [self.audioPlayer play:url];
+    }else{
+        NSLog(@"RNStreamingKitManager Error setting category! %@", [categoryError description]);
+    }
     
 }
 
@@ -239,18 +249,6 @@ RCT_EXPORT_METHOD(getState: (RCTResponseSenderBlock) callback)
 
 #pragma mark - Audio Session
 
-
-- (void)setSharedAudioSessionCategory
-{
-    NSError *categoryError = nil;
-    
-    // Create shared session and set audio session category allowing background playback
-    [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryPlayback error:&categoryError];
-    
-    if (categoryError) {
-        NSLog(@"Error setting category! %@", [categoryError description]);
-    }
-}
 
 - (void)registerAudioInterruptionNotifications
 {

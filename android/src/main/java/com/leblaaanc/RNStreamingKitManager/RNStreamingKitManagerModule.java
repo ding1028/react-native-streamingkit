@@ -50,7 +50,7 @@ MediaPlayer.OnErrorListener, MediaPlayer.OnBufferingUpdateListener {
   volatile boolean _isBuffering;
   volatile boolean _isCall;
   AudioManager _audioManager;
-;
+  AudioManager.OnAudioFocusChangeListener audioFocusHandler;
 
   public RNStreamingKitManagerModule(ReactApplicationContext reactContext) {
     super(reactContext);
@@ -88,24 +88,33 @@ MediaPlayer.OnErrorListener, MediaPlayer.OnBufferingUpdateListener {
          }
      });
      */
+	 
  }
 
   @ReactMethod
   public void play(String url)
   {
-    if (url == null && _isPaused) {
-      startPlaying();
-    } else {
-     try {
-        notifyPlayerStateChange("buffering");
-       _mediaPlayer.reset();
-       _mediaPlayer.setDataSource(_reactContext, Uri.parse(url));
-       _mediaPlayer.prepareAsync();
-       _isBuffering = true;
-     } catch (Exception ex) {
-       ex.printStackTrace();
-     }
-    }
+    int result = _audioManager.requestAudioFocus(audioFocusHandler,
+        // Use the music stream.
+        AudioManager.STREAM_MUSIC,
+        // Request permanent focus.
+        AudioManager.AUDIOFOCUS_GAIN);
+
+	if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+		if (url == null && _isPaused) {
+		  startPlaying();
+		} else {
+		 try {
+			notifyPlayerStateChange("buffering");
+		   _mediaPlayer.reset();
+		   _mediaPlayer.setDataSource(_reactContext, Uri.parse(url));
+		   _mediaPlayer.prepareAsync();
+		   _isBuffering = true;
+		 } catch (Exception ex) {
+		   ex.printStackTrace();
+		 }
+		}
+	}
   }
 
   @ReactMethod
@@ -269,8 +278,7 @@ MediaPlayer.OnErrorListener, MediaPlayer.OnBufferingUpdateListener {
   void initAudioInterrupts() {
     _audioManager = (AudioManager)_reactContext.getSystemService(Context.AUDIO_SERVICE);
 
-    AudioManager.OnAudioFocusChangeListener afChangeListener =
-        new AudioManager.OnAudioFocusChangeListener() {
+    audioFocusHandler = new AudioManager.OnAudioFocusChangeListener() {
             public void onAudioFocusChange(int focusChange) {
                 switch (focusChange) {
                   case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT:
@@ -295,12 +303,6 @@ MediaPlayer.OnErrorListener, MediaPlayer.OnBufferingUpdateListener {
                 }
             }
         };
-
-    int result = _audioManager.requestAudioFocus(afChangeListener,
-                                     // Use the music stream.
-                                     AudioManager.STREAM_MUSIC,
-                                     // Request permanent focus.
-                                     AudioManager.AUDIOFOCUS_GAIN);
   }
 
   // ~~~
